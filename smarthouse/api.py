@@ -53,6 +53,24 @@ def get_smarthouse_info() -> dict[str, int | float]:
 # here ...
 
 
+########dette har jeg laget #########
+
+# Get information on all floors
+@app.get("/smarthouse/floor")
+def get_smarthouse_floor():
+    return smarthouse.get_floors()
+
+# Get information about a floor given by fid
+@app.get("/smarthouse/floor/{fid}")
+def get_floor_info(fid: int):
+    floors = smarthouse.get_floors()
+    for floor in floors:
+        if floor.id == fid:
+            return floor
+    return {"error": "Floor not found"}, 404
+
+######dette har jeg laget###########
+
 if __name__ == '__main__':
     uvicorn.run(app, host="127.0.0.1", port=8000)
 

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "ing301-smarthouse-Bruno",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
