@@ -63,7 +63,18 @@ class SmartHouse:
         (leve=1), then the resulting list contains these three flors in the above order.
         """
 
-        self.floors.sort()
+        #def __lt__(self, other):
+         #   return self.id < other.id
+
+        #self.floors.sort()
+        #print(self.floors)
+        allfloors = []
+
+        for floor in self.floors:
+            id = floor.floorNumber[0]
+            #print(id)
+            allfloors.append(id)
+        allfloors.sort()
 
         return self.floors
 
@@ -109,7 +120,7 @@ class SmartHouse:
 
 
     def get_devices(self):
-        numDevice = (self.devices)
+        numDevice = self.devices
         return numDevice
     
 

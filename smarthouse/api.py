@@ -3,7 +3,14 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 from smarthouse.persistence import SmartHouseRepository
+from smarthouse.domain import SmartHouse
+from smarthouse.domain import Device
 from pathlib import Path
+
+##husk husk##
+#source .venv/bin/activate
+#uvicorn smarthouse.api:app --reload
+
 
 def setup_database():
     project_dir = Path(__file__).parent.parent
@@ -65,9 +72,101 @@ def get_smarthouse_floor():
 def get_floor_info(fid: int):
     floors = smarthouse.get_floors()
     for floor in floors:
-        if floor.id == fid:
+        print(floor.floorNumber[0])
+        if floor.floorNumber[0] == fid:
             return floor
     return {"error": "Floor not found"}, 404
+
+# Get information about all rooms on a given floor fid
+@app.get("/smarthouse/floor/{fid}/room")
+def get_rooms_on_floor(fid: int):
+    floors = smarthouse.get_floors()
+    rooms = smarthouse.get_rooms()
+    #print(rooms)
+    roomsAtFloor = []
+    for room in rooms:
+        #print(room.floor)
+        if room.floor == fid:
+            #print(room.room_name)
+            roomsAtFloor.append(room.room_name)
+    
+    #print(roomsAtFloor)
+    return roomsAtFloor
+
+
+# Get information about a specific room rid on a given floor fid
+@app.get("/smarthouse/floor/{fid}/room/{rid}")
+def get_room_info(fid: int, rid: int):
+
+    floors = smarthouse.get_floors()
+    rooms = smarthouse.get_rooms()
+    #print(rooms)
+    roomsAtFloor = []
+    for room in rooms:
+        #print(room.floor)
+        if room.floor == fid:
+            #print(room.room_name)
+            roomsAtFloor.append(room.room_name)
+    return roomsAtFloor[rid]
+
+
+    """
+    floors = smarthouse.get_floors()
+    for floor in floors:
+        if floor.floorNumber == fid:
+            rooms = floor.get_rooms()
+            for room in rooms:
+                if room.id == rid:
+                    return room
+    return {"error": "Room not found"}, 404
+    """
+
+
+
+
+# Get information on all devices
+@app.get("/smarthouse/device")
+def get_smarthouse_device():
+    alldevices = []
+    devices = smarthouse.get_devices()
+    for device in devices:
+        navn = device.model_name
+        alldevices.append(navn)
+    return alldevices
+
+# Get information for a given device identified by uuid
+@app.get("/smarthouse/device/{uuid}")
+def get_device_info(uuid: str):
+    devices = smarthouse.get_devices()
+    for device in devices:
+        if device.id == uuid:
+            return device.model_name
+    return {"error": "Device not found"}, 404
+
+
+@app.get("/smarthouse/sensor/{uuid}/current")
+def get_current_sensor_measurement(uuid: str):
+    devices = smarthouse.get_devices()
+    for device in devices:
+        if device.id == uuid:
+            device.addMeasurement(19,"%",101010)
+            currentReading = device.last_measurement()
+            value = currentReading.value
+            unit = currentReading.unit
+            time = currentReading.timestamp
+
+            return (value,unit,time)
+    return {"error": "no measurement found"}, 404
+
+
+@app.post("/smarthouse/sensor/{uuid}/current")
+def add_measurement_for_sensor(uuid: str, measurement, unit, time):
+    sensor = smarthouse.get_device_by_id(uuid)
+   
+    sensor.addMeasurement(time, measurement, unit)
+    
+    return {"message": "Measurement added successfully"}
+
 
 ######dette har jeg laget###########
 

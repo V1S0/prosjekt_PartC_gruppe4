@@ -42,6 +42,7 @@ DEMO_HOUSE.register_device(LivingRoomKitchen, heat_pump)
 
 humidity_sensor = sensor("3d87e5c0-8716-4b0b-9c67-087eaaed7b45", "AetherCorp", "Aqua Alert 800","sensor","Humidity Sensor",Bathroom1,"humidity")
 DEMO_HOUSE.register_device(Bathroom1, humidity_sensor)
+humidity_sensor.addMeasurement(10)
 
 smart_oven1 = actuator("8d4e4c98-21a9-4d1e-bf18-523285ad90f6", "AetherCorp", "Pheonix HEAT 333","actuator","Smart oven",guestRoom1,False)
 DEMO_HOUSE.register_device(guestRoom1, smart_oven1)
