@@ -6,6 +6,8 @@ from smarthouse.persistence import SmartHouseRepository
 from smarthouse.domain import SmartHouse
 from smarthouse.domain import Device
 from pathlib import Path
+from typing import Optional
+
 
 ##husk husk##
 #source .venv/bin/activate
@@ -72,7 +74,6 @@ def get_smarthouse_floor():
 def get_floor_info(fid: int):
     floors = smarthouse.get_floors()
     for floor in floors:
-        print(floor.floorNumber[0])
         if floor.floorNumber[0] == fid:
             return floor
     return {"error": "Floor not found"}, 404
@@ -82,15 +83,11 @@ def get_floor_info(fid: int):
 def get_rooms_on_floor(fid: int):
     floors = smarthouse.get_floors()
     rooms = smarthouse.get_rooms()
-    #print(rooms)
     roomsAtFloor = []
     for room in rooms:
-        #print(room.floor)
         if room.floor == fid:
-            #print(room.room_name)
             roomsAtFloor.append(room.room_name)
     
-    #print(roomsAtFloor)
     return roomsAtFloor
 
 
@@ -100,29 +97,11 @@ def get_room_info(fid: int, rid: int):
 
     floors = smarthouse.get_floors()
     rooms = smarthouse.get_rooms()
-    #print(rooms)
     roomsAtFloor = []
     for room in rooms:
-        #print(room.floor)
         if room.floor == fid:
-            #print(room.room_name)
             roomsAtFloor.append(room.room_name)
     return roomsAtFloor[rid]
-
-
-    """
-    floors = smarthouse.get_floors()
-    for floor in floors:
-        if floor.floorNumber == fid:
-            rooms = floor.get_rooms()
-            for room in rooms:
-                if room.id == rid:
-                    return room
-    return {"error": "Room not found"}, 404
-    """
-
-
-
 
 # Get information on all devices
 @app.get("/smarthouse/device")
@@ -137,35 +116,120 @@ def get_smarthouse_device():
 # Get information for a given device identified by uuid
 @app.get("/smarthouse/device/{uuid}")
 def get_device_info(uuid: str):
-    devices = smarthouse.get_devices()
-    for device in devices:
-        if device.id == uuid:
-            return device.model_name
-    return {"error": "Device not found"}, 404
+    Device = smarthouse.get_device_by_id(uuid)
+    if Device:
+        name = Device.model_name
+        DeviceType = Device.device_type
+        room = Device.room
+        roomName = room.room_name
+        return f"{name} is a/an {DeviceType} in {roomName}"
+    else:
+        return {"error": "Device not found"}, 404
+
 
 
 @app.get("/smarthouse/sensor/{uuid}/current")
 def get_current_sensor_measurement(uuid: str):
-    devices = smarthouse.get_devices()
-    for device in devices:
-        if device.id == uuid:
-            device.addMeasurement(19,"%",101010)
-            currentReading = device.last_measurement()
+    Device = smarthouse.get_device_by_id(uuid)
+    name = Device.model_name
+    isSensor = Device.is_sensor()
+    if isSensor:
+
+        if Device.measurements:
+
+            currentReading = Device.last_measurement()
             value = currentReading.value
             unit = currentReading.unit
             time = currentReading.timestamp
-
             return (value,unit,time)
-    return {"error": "no measurement found"}, 404
-
+        else:
+            return f"{name} does not have any measurements"
+    else:
+        return f"{name} is not a sensor!"
+    
 
 @app.post("/smarthouse/sensor/{uuid}/current")
 def add_measurement_for_sensor(uuid: str, measurement, unit, time):
-    sensor = smarthouse.get_device_by_id(uuid)
-   
-    sensor.addMeasurement(time, measurement, unit)
+    Device = smarthouse.get_device_by_id(uuid)
+    name = Device.model_name
+    isSensor = Device.is_sensor()
+
+    if isSensor:
+        Device.addMeasurement(time, measurement, unit)
+        return f"Measurement added successfully to {name}"
+    else:
+        return f"{name} is not a sensor!"
+
+
+@app.get("/smarthouse/sensor/{uuid}/values")
+def get_sensor_measurements(uuid: str, limit: Optional[int] = None):
+    if limit == None:
+        limit =0
     
-    return {"message": "Measurement added successfully"}
+    Device = smarthouse.get_device_by_id(uuid)
+    name = Device.model_name
+    isSensor = Device.is_sensor()
+
+    if isSensor:
+        measuerments = Device.getHistory()
+        nvalues = measuerments[-limit:]
+        valuesToShow = []
+        for reading in nvalues:
+            valuesToAdd = (reading.value, reading.unit, reading.timestamp)
+            valuesToShow.append(valuesToAdd)
+        return valuesToShow
+    else:
+        return f"{name} is not a sensor!"
+
+
+@app.delete("/smarthouse/sensor/{uuid}/oldest")
+def delete_oldest_sensor_measurement(uuid: str):
+    Device = smarthouse.get_device_by_id(uuid)
+    name = Device.model_name
+    isSensor = Device.is_sensor()
+    if isSensor:
+        if Device.measurements:
+            lastMeasurement = Device.measurements.pop(0)
+            time = lastMeasurement.timestamp
+            value = lastMeasurement.value
+            unit = lastMeasurement.unit
+
+            text = f"the oldest measuerement of {value}{unit} at {time} was removed from {name}"
+            return text
+        else:
+            return f"{name} does not have any measurements"
+    else:
+        return f"{name} is not a sensor!"
+
+@app.get("/smarthouse/actuator/{uuid}/current")
+def get_current_actuator_state(uuid: str):
+    Device = smarthouse.get_device_by_id(uuid)
+    name = Device.model_name
+    isActuator = Device.is_actuator()
+    if isActuator:
+        state = Device.state
+        return f"{name}'s state is {state}"
+    else:
+        return f"{name} is not an actuator"
+
+
+
+    
+
+@app.put("/smarthouse/device/{uuid}")
+def update_actuator_state(uuid: str):
+    Device = smarthouse.get_device_by_id(uuid)
+    isActuator = Device.is_actuator()
+    if isActuator:
+        name = Device.model_name
+        state = Device.state
+        Device.state = not state
+        return f"{name}'s state was changed from {state} to {Device.state}"
+    else:
+        return f"{Device.model_name} is not an actuator"
+     
+    
+
 
 
 ######dette har jeg laget###########
